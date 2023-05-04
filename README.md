@@ -1,1 +1,1 @@
-# Flappy-Bird-Pygame
+Library necessary: pygame
