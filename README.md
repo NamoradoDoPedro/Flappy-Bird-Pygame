@@ -1,1 +1,1 @@
-Library necessary: pygame
+Necessary library: Pygame
