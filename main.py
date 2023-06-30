@@ -1,254 +1,164 @@
-import pygame
-import random
+import pygame as pg
 from pygame.locals import *
+from random import randint as r
 from sys import exit
 
-pygame.init()
-vec = pygame.math.Vector2
+pg.init()
+v = pg.Vector2
 
 
-class WindowInfo:
+class Display:
     def __init__(self):
-        self.Dimension = vec(400, 450)
+        self.dimension = v(400, 450)
+        self.display = pg.display.set_mode((self.dimension))
+        self.title = pg.display.set_caption("Flappy Bird")
 
 
-def Infos(WindowInfo):
-    Window = WindowInfo()
-    FPS = 60
-    Height = random.randint(20, Window.Dimension.y-220)
-    clock = pygame.time.Clock()
-    Display = pygame.display.set_mode((Window.Dimension.x, Window.Dimension.y))
-    pygame.display.set_caption("Bird Test")
-    return Window, FPS, Height, clock, Display
-
-
-Window, FPS, Height, clock, Display = Infos(WindowInfo)
-
-
-class PlayerInfo(pygame.sprite.Sprite):
+class Bird:
     def __init__(self):
-        super().__init__()
-        self.Dimension = pygame.Surface((30, 30))
-        self.Dimension.fill((255, 255, 0))
-        self.rect = self.Dimension.get_rect()
+        self.dimension = v(30, 30)
+        self.position = v(50, 50)
+        self.velocity = v(0, 0)
+        self.acceleration = v(0, 0)
 
-        self.Score = int(0)
-        self.Position = vec((50, 50))
-        self.Velocity = vec(0, 0)
-        self.Acceleration = vec(0, 0)
-        self.LockMoves = False
-        self.LockScore = False
+        self.color = (255, 255, 0)
+        self.score = 0
+        self.lockMoves = False
 
     def move(self):
-        self.Acceleration = vec(0, 0.5)
-        self.Velocity += self.Acceleration
-        self.Position += self.Velocity + 0.5 * self.Acceleration
+        self.acceleration = v(0, 0.5)
+        self.velocity += self.acceleration
+        self.position += self.velocity + 0.5 * self.acceleration
 
-        if self.Position.x > Window.Dimension.x:
-            self.Position.x = 0
-        if self.Position.x < 0:
-            self.Position.x = Window.Dimension.x
-
-        self.rect.midbottom = self.Position
+        if self.position.x > DISPLAY.dimension.x:
+            self.position.x = 0
+        if self.position.x < 0:
+            self.position.x = DISPLAY.dimension.x
 
     def jump(self):
-        if self.Position.y > 55:
-            self.Velocity.y = -8.5
-
-    def update(self):
-        if Player.Position.x - 15 > PipeTop.Position.x - 25 and self.LockScore == False:
-            self.Score += 1
-            self.LockScore = True
-        hitsFloor = pygame.sprite.spritecollide(Player, PlatformInfos, False)
-        if hitsFloor:
-            self.Velocity.y = 0
-            self.Position.y = hitsFloor[0].rect.top + 1
+        if self.position.y > 55:
+            self.velocity.y = -8.5
 
     def reset(self):
-        self.Dimension = pygame.Surface((30, 30))
-        self.Dimension.fill((255, 255, 0))
-        self.rect = self.Dimension.get_rect()
+        self.dimension = v(30, 30)
+        self.position = v(50, 50)
+        self.velocity = v(0, 0)
+        self.acceleration = v(0, 0)
 
-        self.Score = int(0)
-        self.Position = vec((50, 50))
-        self.Velocity = vec(0, 0)
-        self.Acceleration = vec(0, 0)
-        self.LockMoves = False
-        self.LockScore = False
+        self.color = (255, 255, 0)
+        self.score = 0
+        self.lockMoves = False
 
 
-class PipeTopInfo(pygame.sprite.Sprite):
+class Floor:
     def __init__(self):
-        super().__init__()
-        self.Dimension = pygame.Surface((50, Window.Dimension.y))
-        self.Dimension.fill((30, 230, 30))
-        self.rect = self.Dimension.get_rect()
-        self.Position = vec((Window.Dimension.x, Height))
-        self.Velocity = int(5)
+        self.dimension = v(DISPLAY.dimension.x, 20)
+        self.position = v(0, DISPLAY.dimension.y - self.dimension.y)
+        self.color = (255, 0, 0)
 
-    def update(self, Height):
-        self.Height = Height
-        self.rect.midbottom = self.Position
-        if self.Position.x < -50:
-            self.Position = vec((Window.Dimension.x, self.Height))
-            Player.LockScore = False
+
+class Pipe:
+    def __init__(self):
+        self.dimension = v(50, DISPLAY.dimension.y)
+        self.color = (30, 230, 30)
+        self.pipe_gap = 120
+        self.down_pos = v(DISPLAY.dimension.x, r(
+            self.pipe_gap + floor.dimension.y, DISPLAY.dimension.y))
+        self.top_pos = v(DISPLAY.dimension.x,
+                         self.down_pos.y - DISPLAY.dimension.y - self.pipe_gap)
+        self.velocity = v(5, 0)
+        self.not_reset = False
 
     def move(self):
-        self.Position.x = self.Position.x - self.Velocity
+        self.top_pos = self.top_pos - self.velocity
+        self.down_pos = self.down_pos - self.velocity
+        if self.top_pos.x < bird.position.x and not self.not_reset:
+            bird.score += 1
+            self.not_reset = True
+        if self.top_pos.x < -50:
+            self.reset()
 
     def reset(self):
-        self.Dimension = pygame.Surface((50, Window.Dimension.y))
-        self.Dimension.fill((30, 230, 30))
-        self.rect = self.Dimension.get_rect()
-        self.Position = vec((Window.Dimension.x, Height))
-        self.Velocity = int(5)
+        self.down_pos = v(DISPLAY.dimension.x, r(
+            self.pipe_gap + floor.dimension.y, DISPLAY.dimension.y))
+        self.top_pos = v(DISPLAY.dimension.x,
+                         self.down_pos.y - DISPLAY.dimension.y - self.pipe_gap)
+        self.velocity = v(5, 0)
+        self.not_reset = False
 
 
-class PipeDownInfo(pygame.sprite.Sprite):
-    def __init__(self):
-        super().__init__()
-        self.Dimension = pygame.Surface((50, Window.Dimension.y))
-        self.Dimension.fill((30, 230, 30))
-        self.rect = self.Dimension.get_rect()
-        self.Position = vec((Window.Dimension.x, Height+580))
-        self.Velocity = int(5)
+def draw():
+    re = pg.draw.rect
+    pt = re(DISPLAY.display, pipe.color, (pipe.top_pos, pipe.dimension))
+    pd = re(DISPLAY.display, pipe.color, (pipe.down_pos, pipe.dimension))
+    f = re(DISPLAY.display, floor.color, (floor.position, floor.dimension))
+    p = re(DISPLAY.display, bird.color, (bird.position, bird.dimension))
 
-    def update(self, Height):
-        self.Height = Height
-        self.rect.midbottom = self.Position
-        if self.Position.x < -50:
-            self.Position = vec((Window.Dimension.x, self.Height+580))
-
-    def move(self):
-        self.Position.x = self.Position.x - self.Velocity
-
-    def reset(self):
-        self.Dimension = pygame.Surface((50, Window.Dimension.y))
-        self.Dimension.fill((30, 230, 30))
-        self.rect = self.Dimension.get_rect()
-        self.Position = vec((Window.Dimension.x, Height+580))
-        self.Velocity = int(5)
+    if p.colliderect(f) or p.colliderect(pt) or p.colliderect(pd):
+        bird.lockMoves = True
+        pipe.velocity = v(0, 0)
 
 
-class FloorInfo(pygame.sprite.Sprite):
-    def __init__(self):
-        super().__init__()
-        self.Dimension = pygame.Surface((Window.Dimension.x, 20))
-        self.Dimension.fill((255, 0, 0))
-        self.rect = self.Dimension.get_rect(
-            center=(Window.Dimension.x/2, Window.Dimension.y - 10))
+def showScore():
+    FONT = pg.font.get_default_font()
+    SIZE = 110
+    SysFont = pg.font.SysFont(FONT, SIZE).render
+    blit = DISPLAY.display.blit
+    WHITE = (255, 255, 255)
 
-    def move(self):
-        pass
+    Text_Player_Points = SysFont(str(bird.score), True, WHITE)
 
+    if bird.score < 10:
+        blit(Text_Player_Points,
+             ((DISPLAY.dimension.x/2) - SIZE/5, 30))
 
-def Sprites_Infos(PlayerInfo, FloorInfo, PipeTopInfo, PipeDownInfo):
-    Floor = FloorInfo()
-    Player = PlayerInfo()
-    PipeTop = PipeTopInfo()
-    PipeDown = PipeDownInfo()
-
-    PlatformInfos = pygame.sprite.Group()
-    PlatformInfos.add(Floor)
-
-    PipesInfos = pygame.sprite.Group()
-    PipesInfos.add(PipeTop)
-    PipesInfos.add(PipeDown)
-
-    all_sprites = All_Sprites_Infos(Floor, Player, PipeTop, PipeDown)
-    return Player, PipeTop, PipeDown, PlatformInfos, PipesInfos, all_sprites
-
-
-def All_Sprites_Infos(Floor, Player, PipeTop, PipeDown):
-    all_sprites = pygame.sprite.Group()
-    all_sprites.add(Floor)
-    all_sprites.add(PipeTop)
-    all_sprites.add(PipeDown)
-    all_sprites.add(Player)
-    return all_sprites
-
-
-Player, PipeTop, PipeDown, PlatformInfos, PipesInfos, all_sprites = Sprites_Infos(
-    PlayerInfo, FloorInfo, PipeTopInfo, PipeDownInfo)
-
-
-def Show_Score(mid):
-    Font = pygame.font.get_default_font()
-    FontSize = 110
-    Font_sys = pygame.font.SysFont(Font, 110)
-
-    if Player.Score < 10:
-        Text_Player_Points_Shadow = pygame.font.SysFont(
-            Font, 110).render(str(int(Player.Score)), True, (0, 0, 0))
-        Display.blit(Text_Player_Points_Shadow,
-                     (mid - FontSize/10 - 2.5, 30 - 5))
-        Text_Player_Points = Font_sys.render(
-            str(int(Player.Score)), True, (255, 240, 240))
-        Display.blit(Text_Player_Points, (mid - FontSize/5, 30))
-
-    elif Player.Score > 9:
-        Text_Player_Points_Shadow = pygame.font.SysFont(
-            Font, 110).render(str(int(Player.Score)), True, (0, 0, 0))
-        Display.blit(Text_Player_Points_Shadow,
-                     (mid - FontSize/4 - 2.5, 30 - 5))
-        Text_Player_Points = Font_sys.render(
-            str(int(Player.Score)), True, (255, 240, 240))
-        Display.blit(Text_Player_Points, (mid - FontSize/2.5, 30))
+    elif bird.score > 9:
+        blit(Text_Player_Points,
+             ((DISPLAY.dimension.x/2) - SIZE/2.5, 30))
 
     else:
-        Text_Player_Points_Shadow = pygame.font.SysFont(
-            Font, 110).render(str(int(Player.Score)), True, (0, 0, 0))
-        Display.blit(Text_Player_Points_Shadow,
-                     (mid - FontSize/2 - 2.5, 30 - 5))
-        Text_Player_Points = Font_sys.render(
-            str(int(Player.Score)), True, (255, 240, 240))
-        Display.blit(Text_Player_Points, (mid - FontSize, 30))
+        blit(Text_Player_Points,
+             ((DISPLAY.dimension.x/2) - SIZE, 30))
 
-    if Player.LockMoves == True:
-        Text_Game_Over = pygame.font.SysFont(Font, 100).render(
-            str("Game Over"), True, (255, 240, 240))
-        Text_Restart = pygame.font.SysFont(Font, 20).render(
-            str("Press 'Space' to restart"), True, (255, 240, 240))
-        Display.blit(Text_Game_Over, (10, 140))
-        Display.blit(Text_Restart, (120, 210))
+    if bird.lockMoves == True:
+        Text_Game_Over = pg.font.SysFont(FONT, 100).render(
+            "Game Over", True, WHITE)
+        Text_Restart = pg.font.SysFont(FONT, 20).render(
+            "Press 'Space' to restart", True, WHITE)
+
+        blit(Text_Game_Over, (10, 140))
+        blit(Text_Restart, (120, 210))
 
 
 if __name__ == "__main__":
+    FPS = 60
+    DISPLAY = Display()
+    bird = Bird()
+    floor = Floor()
+    pipe = Pipe()
+    clock = pg.time.Clock()
+
     while True:
-        for event in pygame.event.get():
+        for event in pg.event.get():
             if event.type == QUIT:
-                pygame.quit()
+                pg.quit()
                 exit()
 
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE and Player.LockMoves == False:
-                    Player.jump()
+            if event.type == pg.KEYDOWN:
+                key = pg.key.get_pressed()
+                if key[K_SPACE] and bird.lockMoves == False:
+                    bird.jump()
 
-                if Player.LockMoves == True:
-                    if event.key == pygame.K_SPACE:
-                        Player.reset()
-                        PipeTop.reset()
-                        PipeDown.reset()
+                if bird.lockMoves == True:
+                    if key[K_SPACE]:
+                        for entity in [bird, pipe]:
+                            entity.reset()
 
-        Height = random.randint(20, Window.Dimension.y-220)
-        Display.fill((0, 0, 0))
-        pygame.draw.rect(Display, (0, 0, 20), (0, 0, 5000, 5000))
-        Player.update()
-        PipeTop.update(Height)
-        PipeDown.update(Height)
-
-        if pygame.sprite.spritecollide(Player, PipesInfos, False) or pygame.sprite.spritecollide(Player, PlatformInfos, False):
-            Player.LockMoves = True
-            PipeTop.Velocity = 0
-            PipeDown.Velocity = 0
-
-        for entity in all_sprites:
-            Display.blit(entity.Dimension, entity.rect)
+        for entity in [bird, pipe]:
             entity.move()
 
-        if PipeTop.Position.x < -50:
-            Height = random.randint(20, Window.Dimension.y-220)
-
-        Show_Score(Window.Dimension.x/2)
-        pygame.display.update()
+        DISPLAY.display.fill((0, 0, 0))
+        draw()
+        showScore()
         clock.tick(FPS)
+        pg.display.update()
