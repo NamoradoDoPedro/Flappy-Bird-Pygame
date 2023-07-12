@@ -4,8 +4,6 @@ from pygame.locals import *
 from random import randint as r
 from sys import exit
 
-pg.init()
-
 
 class Display:
     dimension = v(400, 450)
@@ -158,9 +156,11 @@ class Game:
 
 
 if __name__ == "__main__":
-    FPS = 60
-    game = Game()
+    pg.init()
+
     clock = pg.time.Clock()
+    game = Game()
+    FPS = 60
 
     while True:
         for event in pg.event.get():
